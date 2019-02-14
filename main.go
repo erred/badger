@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
-	"time"
+	"net/http"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -11,6 +13,10 @@ import (
 )
 
 func main() {
+	p := flag.String("p", "8080", "port to listen on")
+	flag.Parse()
+
+	// Setup / get client
 	client, err := google.DefaultClient(oauth2.NoContext, cloudbuild.CloudPlatformScope)
 	if err != nil {
 		log.Fatal("get default client: ", err)
@@ -20,13 +26,73 @@ func main() {
 		log.Fatal("get cloudbuild service: ", err)
 	}
 
-	res, err := svc.Projects.Builds.List("com-seankhliao").Do()
-	if err != nil {
-		log.Fatal("project list: ", err)
-	}
-	for i, b := range res.Builds {
-		fmt.Printf("%d: %s %s %s %s\n", i, b.ProjectId, b.Source.RepoSource.RepoName, b.Status, b.LogUrl)
-	}
+	// handle reuquests
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		repoName := r.URL.Path
+		res, err := svc.Projects.Builds.List("com-seankhliao").Filter(`source.repo_source.repo_name = "` + repoName + `"`).Fields("status").Do()
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, err)
+		}
 
-	time.Sleep(10 * time.Minute)
+		// filter qorking / queued / cancelled
+		status := "STATUS_UNKNOWN"
+		for _, b := range res.Builds {
+			if b.Status == "WORKING" || b.Status == "QUEUED" || b.Status == "CANCELLED" {
+				continue
+			}
+			status = b.Status
+			break
+		}
+
+		shield := NewShieldFromBuild(status)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(shield)
+	})
+	http.ListenAndServe(":"+*p, nil)
 }
+
+type Shield struct {
+	SchemaVersion int    `json:"schemaVersion"`
+	Label         string `json:"label"`
+	Message       string `json:"message"`
+	Color         string `json:"color,omitempty"`
+	LabelColor    string `json:"labelColor,omitempty"`
+	IsError       bool   `json:"isError,omitempty"`
+	NamedLogo     string `json:"namedLogo,omitempty"`
+	LogoSVG       string `json:"logoSvg,omitempty"`
+	LogoWidth     string `json:"logoWidth,omitempty"`
+	LogoPosition  string `json:"logoPosition,omitempty"`
+	Style         string `json:"style,omitempty"`
+	CacheSeconds  string `json:"CacheSeconds,omitempty"`
+}
+
+func NewShieldFromBuild(s string) Shield {
+	color := "important"
+	isErr := true
+	switch s {
+	case "SUCCESS":
+		color = "success"
+		isErr = false
+	case "STATUS_UNKNOWN":
+		color = "inactive"
+		isErr = false
+	}
+	return Shield{
+		SchemaVersion: 1,
+		Label:         "build",
+		Message:       s,
+		Color:         color,
+		IsError:       isErr,
+		Style:         "for-the-badge",
+	}
+}
+
+//   "STATUS_UNKNOWN" - Status of the build is unknown.
+//   "QUEUED" - Build or step is queued; work has not yet begun.
+//   "WORKING" - Build or step is being executed.
+//   "SUCCESS" - Build or step finished successfully.
+//   "FAILURE" - Build or step failed to complete successfully.
+//   "INTERNAL_ERROR" - Build or step failed due to an internal cause.
+//   "TIMEOUT" - Build or step took longer than was allowed.
+//   "CANCELLED" - Build or step was canceled by a user.

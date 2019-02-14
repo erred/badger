@@ -12,4 +12,5 @@ WORKDIR /app
 COPY --from=build /app/badger .
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
+EXPOSE 8080/tcp
 ENTRYPOINT ["/app/badger"]
