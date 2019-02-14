@@ -29,10 +29,16 @@ func main() {
 	// handle reuquests
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		repoName := r.URL.Path
-		res, err := svc.Projects.Builds.List("com-seankhliao").Filter(`source.repo_source.repo_name = "` + repoName + `"`).Fields("status").Do()
+		fmt.Println("querying for ", repoName)
+		res, err := svc.Projects.Builds.
+			List("com-seankhliao").
+			Filter(`source.repo_source.repo_name = "` + repoName + `"`).
+			Fields("status").
+			Do()
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, err)
+			return
 		}
 
 		// filter qorking / queued / cancelled
