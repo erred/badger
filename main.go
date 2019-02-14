@@ -15,6 +15,7 @@ import (
 
 func main() {
 	p := flag.String("p", "8080", "port to listen on")
+	pr := flag.String("pr", "com-seankhliao", "GCP project to query")
 	flag.Parse()
 
 	// Setup / get client
@@ -28,63 +29,54 @@ func main() {
 	}
 
 	// handle reuquests
-	http.HandleFunc("/github/", func(w http.ResponseWriter, r *http.Request) {
-		repoName := strings.Join(strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/"), "_")
-
-		fmt.Println("querying for ", repoName)
-		res, err := svc.Projects.Builds.
-			List("com-seankhliao").
-			Filter(`source.repo_source.repo_name = "` + repoName + `"`).
-			// Fields("status").
-			Do()
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintln(w, err)
-			return
-		}
-
-		// filter qorking / queued / cancelled
-		status := "STATUS_UNKNOWN"
-		for _, b := range res.Builds {
-			if b.Status == "WORKING" || b.Status == "QUEUED" || b.Status == "CANCELLED" {
-				continue
-			}
-			status = b.Status
-			break
-		}
-
-		shield := NewShieldFromBuild(status)
+	http.HandleFunc("/success", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(shield)
+		json.NewEncoder(w).Encode(NewShieldFromBuild("SUCCESS"))
 	})
+	http.HandleFunc("/failure", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(NewShieldFromBuild("failure"))
+	})
+	http.HandleFunc("/status_unknown", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(NewShieldFromBuild("STATUS_UNKNOWN"))
+	})
+	http.HandleFunc("/r/", func(w http.ResponseWriter, r *http.Request) {
+		repoName := strings.Split(r.URL.Path, "/")[2]
 
-	http.HandleFunc("/hardcode/", func(w http.ResponseWriter, r *http.Request) {
-		res, err := svc.Projects.Builds.
-			List("com-seankhliao").
-			Filter(`source.repo_source.repo_name = "github_seankhliao_badger"`).
-			Fields("status").
-			Do()
+		status, err := status(svc, *pr, repoName)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintln(w, err)
-			return
+			fmt.Fprint(w, err)
 		}
 
-		// filter qorking / queued / cancelled
-		status := "STATUS_UNKNOWN"
-		for _, b := range res.Builds {
-			if b.Status == "WORKING" || b.Status == "QUEUED" || b.Status == "CANCELLED" {
-				continue
-			}
-			status = b.Status
-			break
-		}
-
-		shield := NewShieldFromBuild(status)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(shield)
+		json.NewEncoder(w).Encode(NewShieldFromBuild(status))
 	})
 	http.ListenAndServe(":"+*p, nil)
+}
+
+func status(svc *cloudbuild.Service, p, r string) (string, error) {
+	res, err := svc.Projects.Builds.
+		List(p).
+		Filter(`source.repo_source.repo_name = "` + r + `"`).
+		Fields("builds.status").
+		Do()
+	if err != nil {
+		return "", err
+	}
+
+	// filter qorking / queued / cancelled
+	status := "STATUS_UNKNOWN"
+	for _, b := range res.Builds {
+		if b.Status == "WORKING" || b.Status == "QUEUED" || b.Status == "CANCELLED" {
+			continue
+		}
+		status = b.Status
+		break
+	}
+	return status, nil
+
 }
 
 type Shield struct {
