@@ -3,19 +3,19 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
-	"os"
 	"time"
 
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/cloudbuild/v1"
 )
 
 func main() {
-	for i, e := range os.Environ() {
-		fmt.Println(i, e)
+	client, err := google.DefaultClient(oauth2.NoContext, cloudbuild.CloudPlatformScope)
+	if err != nil {
+		log.Fatal("get default client: ", err)
 	}
-
-	svc, err := cloudbuild.New(http.DefaultClient)
+	svc, err := cloudbuild.New(client)
 	if err != nil {
 		log.Fatal("get cloudbuild service: ", err)
 	}
