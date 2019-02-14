@@ -30,15 +30,16 @@ func main() {
 	// handle reuquests
 	http.HandleFunc("/github/", func(w http.ResponseWriter, r *http.Request) {
 		repoName := strings.Join(strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/"), "_")
+
 		fmt.Println("querying for ", repoName)
 		res, err := svc.Projects.Builds.
 			List("com-seankhliao").
 			Filter(`source.repo_source.repo_name = "` + repoName + `"`).
-			Fields("status").
+			// Fields("status").
 			Do()
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, err)
+			fmt.Fprintln(w, err)
 			return
 		}
 
