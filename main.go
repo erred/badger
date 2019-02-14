@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -27,8 +28,8 @@ func main() {
 	}
 
 	// handle reuquests
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		repoName := r.URL.Path
+	http.HandleFunc("/github/", func(w http.ResponseWriter, r *http.Request) {
+		repoName := strings.Join(strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/"), "_")
 		fmt.Println("querying for ", repoName)
 		res, err := svc.Projects.Builds.
 			List("com-seankhliao").
