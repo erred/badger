@@ -57,6 +57,33 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(shield)
 	})
+
+	http.HandleFunc("/hardcode/", func(w http.ResponseWriter, r *http.Request) {
+		res, err := svc.Projects.Builds.
+			List("com-seankhliao").
+			Filter(`source.repo_source.repo_name = "github_seankhliao_badger"`).
+			Fields("status").
+			Do()
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintln(w, err)
+			return
+		}
+
+		// filter qorking / queued / cancelled
+		status := "STATUS_UNKNOWN"
+		for _, b := range res.Builds {
+			if b.Status == "WORKING" || b.Status == "QUEUED" || b.Status == "CANCELLED" {
+				continue
+			}
+			status = b.Status
+			break
+		}
+
+		shield := NewShieldFromBuild(status)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(shield)
+	})
 	http.ListenAndServe(":"+*p, nil)
 }
 
