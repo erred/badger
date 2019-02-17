@@ -53,6 +53,88 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(NewShieldFromBuild(status))
 	})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+
+		w.Write([]byte(`
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1" />
+
+    <title>Badger</title>
+    <meta name="description" content="Markdown badges for Cloud Build results" />
+
+    <style>
+	* {
+	  box-sizing: border-box;
+	}
+	body, section {
+	  display: flex;
+	  flex-flow: column nowrap;
+	  align-items: center;
+	  margin: 0;
+	  width: 100%;
+	}
+	label {
+	  margin-top: 1em;
+	}
+	section input {
+	  margin-bottom: 1em;
+	  width: 90%;
+	}
+    </style>
+  </head>
+  <body>
+    <h1>Badger</h1>
+    <p>Badges for Cloud Build*</p>
+    <p>
+      <a href="https://github.com/seankhliao/badger">Source on Github</a>
+      <a href="https://console.cloud.google.com/cloud-build/builds?project=com-seankhliao&query=source.repo_source.repo_name%20%3D%20%22github_seankhliao_badger%22"
+	<img src="https://img.shields.io/badge/endpoint.svg?url=https://badger.seankhliao.com/r/github_seankhliao_badger" />
+      </a>
+    </p>
+    <p>* <em>Only works with projects it had access to</em></p>
+
+    <h2>Generate</h2>
+    <label for"repo">Repo name (github format: <code>github_$user_$repo</code>)</label>
+    <input type="text" id="repo" name="repo"/>
+
+    <section>
+	    <label for"out1">img url: </label>
+	    <input type="text" id="out1" name="out1">
+
+	    <label for"out2">markdown img: </label>
+	    <input type="text" id="out2" name="out2">
+
+	    <label for"out3">markdown with link: </label>
+	    <input type="text" id="out3" name="out3">
+    </section>
+
+
+    <script>
+      const repo = document.querySelector('#repo');
+      const out1 = document.querySelector('#out1');
+      const out2 = document.querySelector('#out2');
+      const out3 = document.querySelector('#out3');
+      const shieldUrl = 'https://img.shields.io/badge/endpoint.svg?url=https://badger.seankhliao.com/r/';
+      repo.addEventListener('input', function(e){
+	imgUrl = shieldUrl + repo.value;
+	linkUrl = 'https://console.cloud.google.com/cloud-build/builds?project=com-seankhliao&query=source.repo_source.repo_name%20%3D%20%22' + repo.value + '%22'
+	out1.value = imgUrl;
+	out2.value = '![Build](' + imgUrl + ')';
+	out3.value = '[![Build](' + imgUrl + ')](' + linkUrl + ')';
+      });
+    </script>
+  </body>
+</html>
+		`))
+
+	})
 	http.ListenAndServe(":"+*p, nil)
 }
 
@@ -114,12 +196,3 @@ func NewShieldFromBuild(s string) Shield {
 		Style:         "for-the-badge",
 	}
 }
-
-//   "STATUS_UNKNOWN" - Status of the build is unknown.
-//   "QUEUED" - Build or step is queued; work has not yet begun.
-//   "WORKING" - Build or step is being executed.
-//   "SUCCESS" - Build or step finished successfully.
-//   "FAILURE" - Build or step failed to complete successfully.
-//   "INTERNAL_ERROR" - Build or step failed due to an internal cause.
-//   "TIMEOUT" - Build or step took longer than was allowed.
-//   "CANCELLED" - Build or step was canceled by a user.
