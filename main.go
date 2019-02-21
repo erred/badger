@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -15,12 +14,24 @@ import (
 )
 
 const (
-	ConsoleLink = "https://console.cloud.google.com/cloud-build/builds"
+	ConsoleLink   = "https://console.cloud.google.com/cloud-build/builds"
+	ShieldsIOLink = "https://img.shields.io/badge/BUILD-%s-%s.svg?style=for-the-badge&maxAge=31536000"
 )
 
 var (
 	GCPProject = "com-seankhliao"
+	ColorMap   = map[string]string{
+		"SUCCESS":        "success",
+		"FAILURE":        "warning",
+		"STATUS_UNKNOWN": "informational",
+		"NOT_FOUND":      "inactive",
+		"INTERNAL_ERROR": "critical",
+	}
 )
+
+func ShieldLink(status string) string {
+	return fmt.Sprintf(ShieldsIOLink, status, ColorMap[status])
+}
 
 func main() {
 	p := flag.String("p", "8080", "port to listen on")
@@ -38,20 +49,14 @@ func main() {
 	}
 
 	// handle reuquests
-	http.HandleFunc("/success", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(NewShieldFromBuild("SUCCESS"))
-	})
-	http.HandleFunc("/failure", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(NewShieldFromBuild("failure"))
-	})
-	http.HandleFunc("/status_unknown", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(NewShieldFromBuild("STATUS_UNKNOWN"))
-	})
 	http.HandleFunc("/i/", func(w http.ResponseWriter, r *http.Request) {
 		repoName := strings.Split(r.URL.Path, "/")[2]
+		s, err := status(svc, *pr, repoName)
+		if err != nil {
+			s = "INTERNAL_ERROR"
+		}
+		http.Redirect(w, r, ShieldLink(s), http.StatusFound)
+
 		u := "https://img.shields.io/badge/endpoint.svg?url=https://badger.seankhliao.com/r/" + repoName
 		http.Redirect(w, r, u, http.StatusMovedPermanently)
 	})
@@ -67,27 +72,49 @@ func main() {
 		}
 		u := ConsoleLink + "?" + vals.Encode()
 		http.Redirect(w, r, u, http.StatusFound)
-
-	})
-	http.HandleFunc("/r/", func(w http.ResponseWriter, r *http.Request) {
-		repoName := strings.Split(r.URL.Path, "/")[2]
-
-		status, err := status(svc, *pr, repoName)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, err)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(NewShieldFromBuild(status))
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
+		w.Write(indexHTML)
+	})
+	http.ListenAndServe(":"+*p, nil)
+}
 
-		w.Write([]byte(`
+// Possible values:
+//   "STATUS_UNKNOWN" - Status of the build is unknown.
+//   "QUEUED" - Build or step is queued; work has not yet begun.
+//   "WORKING" - Build or step is being executed.
+//   "SUCCESS" - Build or step finished successfully.
+//   "FAILURE" - Build or step failed to complete successfully.
+//   "INTERNAL_ERROR" - Build or step failed due to an internal cause.
+//   "TIMEOUT" - Build or step took longer than was allowed.
+//   "CANCELLED" - Build or step was canceled by a user.
+func status(svc *cloudbuild.Service, p, r string) (string, error) {
+	res, err := svc.Projects.Builds.
+		List(p).
+		Filter(`source.repo_source.repo_name = "` + r + `"`).
+		Fields("builds.status").
+		Do()
+	if err != nil {
+		return "INTERNAL_ERROR", err
+	}
+
+	// filter qorking / queued / cancelled
+	status := "NOT_FOUND"
+	for _, b := range res.Builds {
+		if b.Status == "WORKING" || b.Status == "QUEUED" || b.Status == "CANCELLED" {
+			continue
+		}
+		status = b.Status
+		break
+	}
+	return status, nil
+}
+
+var indexHTML = []byte(`
 <!doctype html>
 <html lang="en">
   <head>
@@ -160,67 +187,4 @@ func main() {
     </script>
   </body>
 </html>
-		`))
-
-	})
-	http.ListenAndServe(":"+*p, nil)
-}
-
-func status(svc *cloudbuild.Service, p, r string) (string, error) {
-	res, err := svc.Projects.Builds.
-		List(p).
-		Filter(`source.repo_source.repo_name = "` + r + `"`).
-		Fields("builds.status").
-		Do()
-	if err != nil {
-		return "", err
-	}
-
-	// filter qorking / queued / cancelled
-	status := "STATUS_UNKNOWN"
-	for _, b := range res.Builds {
-		if b.Status == "WORKING" || b.Status == "QUEUED" || b.Status == "CANCELLED" {
-			continue
-		}
-		status = b.Status
-		break
-	}
-	return status, nil
-
-}
-
-type Shield struct {
-	SchemaVersion int    `json:"schemaVersion"`
-	Label         string `json:"label"`
-	Message       string `json:"message"`
-	Color         string `json:"color,omitempty"`
-	LabelColor    string `json:"labelColor,omitempty"`
-	IsError       bool   `json:"isError,omitempty"`
-	NamedLogo     string `json:"namedLogo,omitempty"`
-	LogoSVG       string `json:"logoSvg,omitempty"`
-	LogoWidth     string `json:"logoWidth,omitempty"`
-	LogoPosition  string `json:"logoPosition,omitempty"`
-	Style         string `json:"style,omitempty"`
-	CacheSeconds  string `json:"CacheSeconds,omitempty"`
-}
-
-func NewShieldFromBuild(s string) Shield {
-	color := "important"
-	isErr := true
-	switch s {
-	case "SUCCESS":
-		color = "success"
-		isErr = false
-	case "STATUS_UNKNOWN":
-		color = "inactive"
-		isErr = false
-	}
-	return Shield{
-		SchemaVersion: 1,
-		Label:         "build",
-		Message:       s,
-		Color:         color,
-		IsError:       isErr,
-		Style:         "for-the-badge",
-	}
-}
+`)
