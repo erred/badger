@@ -16,18 +16,18 @@ badger [-p 8080] [-pr com-seankhliao]
 
 Accepts the following urls:
 
-- `/r/$REPO`: name of Source Repo, github repos are the form `github_$USER_$REPO`
-- `/success`: returns a success
-- `/failure`: returns a failure
-- `/status_unkown`: returns a status_unkown
+> github repos are the form `github_$USER_$REPO`
 
-To be used with the [Shields.io Endpoint API](https://shields.io/endpoint)
-
-```
-https://img.shields.io/badge/endpoint.svg?url=https://badger.seankhliao.com/r/$REPO
+- `/i/$REPO`: redirect to the appropriate shields.io img
+- `/l/$REPO`: redirect to the build history in GCP console
 
 ex:
-https://img.shields.io/badge/endpoint.svg?url=https://badger.seankhliao.com/r/github_seankhliao_badger
+
+```
+[![Build][build-img]][build-link]
+
+[build-img]: https://badger.seankhliao.com/i/github_seankhliao_badger
+[build-link]: https://badger.seankhliao.com/l/github_seankhliao_badger
 ```
 
 ## Design
