@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"golang.org/x/oauth2"
@@ -13,9 +14,17 @@ import (
 	"google.golang.org/api/cloudbuild/v1"
 )
 
+const (
+	ConsoleLink = "https://console.cloud.google.com/cloud-build/builds"
+)
+
+var (
+	GCPProject = "com-seankhliao"
+)
+
 func main() {
 	p := flag.String("p", "8080", "port to listen on")
-	pr := flag.String("pr", "com-seankhliao", "GCP project to query")
+	pr := flag.String("pr", GCPProject, "GCP project to query")
 	flag.Parse()
 
 	// Setup / get client
@@ -40,6 +49,25 @@ func main() {
 	http.HandleFunc("/status_unknown", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(NewShieldFromBuild("STATUS_UNKNOWN"))
+	})
+	http.HandleFunc("/i/", func(w http.ResponseWriter, r *http.Request) {
+		repoName := strings.Split(r.URL.Path, "/")[2]
+		u := "https://img.shields.io/badge/endpoint.svg?url=https://badger.seankhliao.com/r/" + repoName
+		http.Redirect(w, r, u, http.StatusMovedPermanently)
+	})
+	http.HandleFunc("/l/", func(w http.ResponseWriter, r *http.Request) {
+		repoName := strings.Split(r.URL.Path, "/")[2]
+		vals := url.Values{
+			"project": []string{
+				*pr,
+			},
+			"query": []string{
+				fmt.Sprintf(`source.repo_source.repo_name = "%s"`, repoName),
+			},
+		}
+		u := ConsoleLink + "?" + vals.Encode()
+		http.Redirect(w, r, u, http.StatusFound)
+
 	})
 	http.HandleFunc("/r/", func(w http.ResponseWriter, r *http.Request) {
 		repoName := strings.Split(r.URL.Path, "/")[2]
@@ -94,8 +122,8 @@ func main() {
     <p>Badges for Cloud Build*</p>
     <p>
       <a href="https://github.com/seankhliao/badger">Source on Github</a>
-      <a href="https://console.cloud.google.com/cloud-build/builds?project=com-seankhliao&query=source.repo_source.repo_name%20%3D%20%22github_seankhliao_badger%22"
-	<img src="https://img.shields.io/badge/endpoint.svg?url=https://badger.seankhliao.com/r/github_seankhliao_badger" />
+      <a href="https://badger.seankhliao.com/l/github_seankhliao_badger"
+	<img src="https://badger.seankhliao.com/i/github_seankhliao_badger" />
       </a>
     </p>
     <p>* <em>Only works with projects it had access to</em></p>
@@ -121,10 +149,10 @@ func main() {
       const out1 = document.querySelector('#out1');
       const out2 = document.querySelector('#out2');
       const out3 = document.querySelector('#out3');
-      const shieldUrl = 'https://img.shields.io/badge/endpoint.svg?url=https://badger.seankhliao.com/r/';
+      const imgLinkUrl = 'https://badger.seankhliao.com/i/';
       repo.addEventListener('input', function(e){
-	imgUrl = shieldUrl + repo.value;
-	linkUrl = 'https://console.cloud.google.com/cloud-build/builds?project=com-seankhliao&query=source.repo_source.repo_name%20%3D%20%22' + repo.value + '%22'
+	imgUrl = imgLinkUrl + repo.value;
+	linkUrl = 'https://badger.seankhliao.com/l/' + repo.value;
 	out1.value = imgUrl;
 	out2.value = '![Build](' + imgUrl + ')';
 	out3.value = '[![Build](' + imgUrl + ')](' + linkUrl + ')';
