@@ -1,9 +1,13 @@
 # badger
 
-[![Build](https://badger.seankhliao.com/i/github_seankhliao_badger)](https://badger.seankhliao.com/l/github_seankhliao_badger)
-[![License](https://img.shields.io/github/license/seankhliao/badger.svg?style=for-the-badge)](LICENSE)
+badges for GCP cloud build
 
-badges for GCP Cloud Build
+[![License](https://img.shields.io/github/license/seankhliao/badger.svg?style=for-the-badge&maxAge=31536000)](LICENSE)
+[![Build](https://badger.seankhliao.com/i/github_seankhliao_badger)](https://badger.seankhliao.com/l/github_seankhliao_badger)
+
+## About
+
+Cloud build doesn't natively support badges yet :(
 
 ## Usage
 
@@ -12,6 +16,12 @@ badger [-p 8080] [-pr com-seankhliao]
   -p    port to listen on
   -pr   GCP project to query
 ```
+
+#### Prerequisites
+
+cloud build
+
+#### Run
 
 Accepts the following urls:
 
@@ -28,17 +38,3 @@ ex:
 [build-img]: https://badger.seankhliao.com/i/github_seankhliao_badger
 [build-link]: https://badger.seankhliao.com/l/github_seankhliao_badger
 ```
-
-## Design
-
-steps:
-
-1. Query GCP for builds list fitting repo filter
-2. Filter skipping working / queued / cancelled, use first result
-3. generate JSON
-
-## TODO
-
-- manage caching
-- doc url
-- markdown generator
