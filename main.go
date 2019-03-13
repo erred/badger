@@ -14,7 +14,9 @@ import (
 )
 
 const (
-	ConsoleLink   = "https://console.cloud.google.com/cloud-build/builds"
+	// ConsoleLink is a link to build history
+	ConsoleLink = "https://console.cloud.google.com/cloud-build/builds"
+	// ShieldsIOLink is a link to the shields image
 	ShieldsIOLink = "https://img.shields.io/badge/BUILD-%s-%s.svg?style=for-the-badge&maxAge=31536000"
 )
 
@@ -56,9 +58,6 @@ func main() {
 			s = "INTERNAL_ERROR"
 		}
 		http.Redirect(w, r, ShieldLink(s), http.StatusFound)
-
-		u := "https://img.shields.io/badge/endpoint.svg?url=https://badger.seankhliao.com/r/" + repoName
-		http.Redirect(w, r, u, http.StatusMovedPermanently)
 	})
 	http.HandleFunc("/l/", func(w http.ResponseWriter, r *http.Request) {
 		repoName := strings.Split(r.URL.Path, "/")[2]
