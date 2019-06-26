@@ -40,6 +40,9 @@ func main() {
 	if Port == "" {
 		Port = ":8080"
 	}
+	if Port[0] != ':' {
+		Port = ":" + Port
+	}
 
 	// Setup / get client
 	client, err := google.DefaultClient(oauth2.NoContext, cloudbuild.CloudPlatformScope)

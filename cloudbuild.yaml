@@ -1,9 +1,6 @@
 steps:
-  - name: "gcr.io/cloud-builders/docker"
+  - id: deploy
+    name: gcr.ip/cloud-builders/gcloud
     args:
-      - "build"
-      - "-t"
-      - "gcr.io/$PROJECT_ID/badger"
-      - "."
-images:
-  - "gcr.io/$PROJECT_ID/badger"
+      - app
+      - deploy
