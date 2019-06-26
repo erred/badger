@@ -23,3 +23,8 @@
 *.test
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+LICENSE
+README.md
+
+cloudbuild.yaml
