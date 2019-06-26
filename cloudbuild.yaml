@@ -1,6 +1,6 @@
 steps:
   - id: deploy
-    name: gcr.ip/cloud-builders/gcloud
+    name: gcr.io/cloud-builders/gcloud
     args:
       - app
       - deploy
