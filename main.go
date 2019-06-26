@@ -1,11 +1,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"golang.org/x/oauth2"
@@ -21,7 +21,8 @@ const (
 )
 
 var (
-	GCPProject = "com-seankhliao"
+	Port       = os.Getenv("PORT")
+	GCPProject = os.Getenv("PROJECT")
 	ColorMap   = map[string]string{
 		"SUCCESS":        "success",
 		"FAILURE":        "warning",
@@ -36,9 +37,9 @@ func ShieldLink(status string) string {
 }
 
 func main() {
-	p := flag.String("p", "8080", "port to listen on")
-	pr := flag.String("pr", GCPProject, "GCP project to query")
-	flag.Parse()
+	if Port == "" {
+		Port = ":8080"
+	}
 
 	// Setup / get client
 	client, err := google.DefaultClient(oauth2.NoContext, cloudbuild.CloudPlatformScope)
@@ -53,7 +54,7 @@ func main() {
 	// handle reuquests
 	http.HandleFunc("/i/", func(w http.ResponseWriter, r *http.Request) {
 		repoName := strings.Split(r.URL.Path, "/")[2]
-		s, err := status(svc, *pr, repoName)
+		s, err := status(svc, GCPProject, repoName)
 		if err != nil {
 			s = "INTERNAL_ERROR"
 		}
@@ -63,7 +64,7 @@ func main() {
 		repoName := strings.Split(r.URL.Path, "/")[2]
 		vals := url.Values{
 			"project": []string{
-				*pr,
+				GCPProject,
 			},
 			"query": []string{
 				fmt.Sprintf(`source.repo_source.repo_name = "%s"`, repoName),
@@ -79,7 +80,7 @@ func main() {
 		}
 		w.Write(indexHTML)
 	})
-	http.ListenAndServe(":"+*p, nil)
+	log.Fatal(http.ListenAndServe(Port, nil))
 }
 
 // Possible values:
