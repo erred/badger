@@ -9,18 +9,6 @@ badges for GCP cloud build
 
 Cloud build doesn't natively support badges yet :(
 
-## Usage
-
-```
-badger [-p 8080] [-pr com-seankhliao]
-  -p    port to listen on
-  -pr   GCP project to query
-```
-
-#### Prerequisites
-
-cloud build
-
 #### Run
 
 Accepts the following urls:
