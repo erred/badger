@@ -17,7 +17,7 @@ const (
 	// ConsoleLink is a link to build history
 	ConsoleLink = "https://console.cloud.google.com/cloud-build/builds?%s"
 	// ShieldsIOLink is a link to the shields image
-	ShieldsIOLink = "https://img.shields.io/badge/BUILD-%s-%s.svg?style=for-the-badge&maxAge=31536000"
+	ShieldsIOLink = "https://img.shields.io/badge/BUILD-%s-%s.svg?style=flat-square"
 )
 
 var (
