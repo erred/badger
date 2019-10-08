@@ -6,3 +6,4 @@ steps:
       - deploy
 tags:
   - $SHORT_SHA
+  - $COMMIT_SHA
