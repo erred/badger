@@ -4,3 +4,5 @@ steps:
     args:
       - app
       - deploy
+tags:
+  - $SHORT_SHA
