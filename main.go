@@ -64,7 +64,7 @@ func main() {
 		log.Info().Str("tag", tag).Str("status", status).Msg("served")
 		linkImg(w, r, status, color)
 	})))
-	http.Handle("/badger/i/", http.StripPrefix("/badger/i/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.Handle("/badger/l/", http.StripPrefix("/badger/l/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var tag string
 		if tag = strings.Split(r.URL.Path, "/")[0]; tag == "" {
 			log.Error().Str("url", r.URL.String()).Msg("no tag specified")
