@@ -97,7 +97,7 @@ func initLog() {
 
 func linkImg(w http.ResponseWriter, r *http.Request, status, color string) {
 	u := url.URL{
-		Scheme:   "https:",
+		Scheme:   "https",
 		Host:     "img.shields.io",
 		Path:     "/badge/build-" + status + "-" + color + ".svg",
 		RawQuery: r.URL.RawQuery,
