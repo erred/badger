@@ -1,0 +1,6 @@
+commonLabels:
+  app: badger
+resources:
+  - service.yaml
+  - deployment.yaml
+  - serviceaccount.yaml

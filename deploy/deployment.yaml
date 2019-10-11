@@ -1,0 +1,35 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: badger
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: badger
+  template:
+    spec:
+      serviceAccountName: badger
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: cloud.google.com/gke-preemptible
+                    operator: Exists
+      containers:
+        - name: calproxy
+          image: gcr.io/com-seankhliao/badger:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 20m
+              memory: 40Mi
+            limits:
+              cpu: 40m
+              memory: 80Mi
