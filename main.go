@@ -28,7 +28,7 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	project := os.Getenv("PORJECT")
+	project := os.Getenv("PROJECT")
 	if project == "" {
 		log.Fatal().Msg("PROJECT must be set")
 	}

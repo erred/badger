@@ -24,6 +24,9 @@ spec:
       containers:
         - name: badger
           image: gcr.io/com-seankhliao/badger:latest
+          env:
+            - name: PROJECT
+              value: com-seankhliao
           ports:
             - containerPort: 8080
           resources:
