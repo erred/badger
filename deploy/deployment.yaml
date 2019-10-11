@@ -22,7 +22,7 @@ spec:
                   - key: cloud.google.com/gke-preemptible
                     operator: Exists
       containers:
-        - name: calproxy
+        - name: badger
           image: gcr.io/com-seankhliao/badger:latest
           ports:
             - containerPort: 8080
